@@ -1,0 +1,81 @@
+name: sub2api-prod
+
+# Replaceable application layer. Production automation manages only this file.
+services:
+  sub2api:
+    image: ${SUB2API_IMAGE:?SUB2API_IMAGE is required}
+    pull_policy: always
+    container_name: sub2api-prod
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
+    ports:
+      # Caddy on the host will be the only public entry point.
+      - "127.0.0.1:${SUB2API_PORT:-8080}:8080"
+    volumes:
+      - type: bind
+        source: ${SUB2API_DATA_ROOT:-/srv/sub2api}/app
+        target: /app/data
+    environment:
+      AUTO_SETUP: "true"
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      SERVER_MODE: release
+      RUN_MODE: ${RUN_MODE:-standard}
+      DATA_DIR: /app/data
+
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER:-sub2api}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      DATABASE_DBNAME: ${POSTGRES_DB:-sub2api}
+      DATABASE_SSLMODE: disable
+      DATABASE_MAX_OPEN_CONNS: ${DATABASE_MAX_OPEN_CONNS:-50}
+      DATABASE_MAX_IDLE_CONNS: ${DATABASE_MAX_IDLE_CONNS:-10}
+      DATABASE_CONN_MAX_LIFETIME_MINUTES: ${DATABASE_CONN_MAX_LIFETIME_MINUTES:-30}
+      DATABASE_CONN_MAX_IDLE_TIME_MINUTES: ${DATABASE_CONN_MAX_IDLE_TIME_MINUTES:-5}
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE:-1024}
+      REDIS_MIN_IDLE_CONNS: ${REDIS_MIN_IDLE_CONNS:-10}
+      REDIS_ENABLE_TLS: "false"
+
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL is required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required for first deployment}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRE_HOUR: ${JWT_EXPIRE_HOUR:-24}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
+      SETUP_MIGRATION_TIMEOUT_SECONDS: ${SETUP_MIGRATION_TIMEOUT_SECONDS:-120}
+      TZ: ${TZ:-Asia/Shanghai}
+
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      LOG_ENV: production
+      LOG_OUTPUT_TO_STDOUT: "true"
+      LOG_OUTPUT_TO_FILE: "true"
+      LOG_ROTATION_MAX_SIZE_MB: ${LOG_ROTATION_MAX_SIZE_MB:-100}
+      LOG_ROTATION_MAX_BACKUPS: ${LOG_ROTATION_MAX_BACKUPS:-10}
+      LOG_ROTATION_MAX_AGE_DAYS: ${LOG_ROTATION_MAX_AGE_DAYS:-7}
+      LOG_ROTATION_COMPRESS: "true"
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    networks:
+      - backend
+
+networks:
+  backend:
+    name: sub2api-backend
+    external: true
+

@@ -1,0 +1,80 @@
+name: sub2api-infra
+
+# Long-lived infrastructure. GitHub Actions must never run `down` on this file.
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: sub2api-postgres
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    command: >-
+      postgres
+      -c max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
+      -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
+      -c effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-768MB}
+      -c maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_USER: ${POSTGRES_USER:-sub2api}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-sub2api}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - type: bind
+        source: ${SUB2API_DATA_ROOT:-/srv/sub2api}/postgres
+        target: /var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      backend:
+        aliases:
+          - postgres
+
+  redis:
+    image: redis:8-alpine
+    container_name: sub2api-redis
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - sh
+      - -ec
+      - |
+        exec redis-server \
+          --save 60 1 \
+          --appendonly yes \
+          --appendfsync everysec \
+          --requirepass "$${REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - type: bind
+        source: ${SUB2API_DATA_ROOT:-/srv/sub2api}/redis
+        target: /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      backend:
+        aliases:
+          - redis
+
+networks:
+  backend:
+    name: sub2api-backend
+    driver: bridge
+
