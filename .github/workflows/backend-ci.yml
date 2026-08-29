@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
+    branches:
+      - custom/prod
   pull_request:
+    branches:
+      - custom/prod
 
 permissions:
   contents: read

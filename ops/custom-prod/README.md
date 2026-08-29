@@ -9,6 +9,10 @@
 - `custom/prod`：生产分支，只接收确认可上线的 `custom/main` 变更。
 - GitHub Actions 只允许由 `custom/prod` 触发生产部署。
 
+自定义分支中的 `backend-ci.yml` 和 `security-scan.yml` 也只响应 `custom/prod` 的 push，或目标为 `custom/prod` 的 pull request。推送 `custom/main` 不运行这些工作流。
+
+上游 `main` 保留原作者文件，因此直接推送它时仍可能遵循原作者的 Action 规则。若某次只是在 GitHub 上同步上游且明确不需要检查，可让该次同步提交信息包含 `[skip ci]`。包含应用变更的 `custom/prod` 最新提交不得带 `[skip ci]`，否则生产部署也会被跳过；仅修改 CI 配置时可以有意使用。
+
 ## 文件职责
 
 - `compose.infra.yml`：PostgreSQL、Redis 和私有 Docker 网络。长期运行，不由自动部署停止或删除。
