@@ -39,7 +39,6 @@ sub2api-prod:8080
 
    ```text
    SUB2API_DOMAIN=example.com
-   TLS_EMAIL=admin@example.com
    NGINX_IMAGE=nginx:alpine
    CERTBOT_IMAGE=certbot/certbot:latest
    ```
@@ -75,9 +74,8 @@ sub2api-prod:8080
          --webroot \
          --webroot-path /var/www/certbot \
          --domain "$SUB2API_DOMAIN" \
-         --email "$TLS_EMAIL" \
          --agree-tos \
-         --no-eff-email
+         --register-unsafely-without-email
      '
    ```
 
@@ -101,7 +99,7 @@ sub2api-prod:8080
      up -d
    ```
 
-Certbot 每 12 小时检查一次续期；Nginx 每 6 小时验证配置并平滑重载，因此续期后的证书会自动生效。
+Certbot 使用无邮箱 ACME 账户注册。它每 12 小时检查一次续期；Nginx 每 6 小时验证配置并平滑重载，因此续期后的证书会自动生效。
 
 ## 验收
 
@@ -126,4 +124,3 @@ docker exec sub2api-nginx nginx -t
 - `/srv/sub2api/certbot`
 
 代理规则变更应先在 `custom/main` 测试，再作为独立运维变更发布；不要把 Nginx 重启混进每次应用镜像更新。
-

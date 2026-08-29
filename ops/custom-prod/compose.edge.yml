@@ -61,7 +61,6 @@ services:
         done
     environment:
       SUB2API_DOMAIN: ${SUB2API_DOMAIN:?SUB2API_DOMAIN is required}
-      TLS_EMAIL: ${TLS_EMAIL:?TLS_EMAIL is required}
     volumes:
       - type: bind
         source: ${SUB2API_DATA_ROOT:-/srv/sub2api}/certbot/www
@@ -74,4 +73,3 @@ networks:
   backend:
     name: sub2api-backend
     external: true
-
