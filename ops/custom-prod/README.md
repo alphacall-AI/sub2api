@@ -13,6 +13,7 @@
 
 - `compose.infra.yml`：PostgreSQL、Redis 和私有 Docker 网络。长期运行，不由自动部署停止或删除。
 - `compose.app.yml`：Sub2API 应用。GitHub Actions 只能管理这一层。
+- `nginx/`：宿主机 Nginx、HTTPS 和证书续期配置。长期运行，不由应用 Action 管理。
 - `env.example`：服务器环境变量模板，不包含真实密钥。
 
 所有持久化数据默认位于 `/srv/sub2api`，不放在 Runner 工作目录：
@@ -70,7 +71,7 @@
      up -d
    ```
 
-5. 应用只监听宿主机 `127.0.0.1:8080`。Caddy 或其他反向代理应连接这个地址，PostgreSQL 和 Redis 不映射宿主机端口。
+5. 应用只监听宿主机 `127.0.0.1:8080`。按照 `nginx/README.md` 配置 Nginx 和 HTTPS，PostgreSQL 和 Redis 不映射宿主机端口。
 
 ## 自动部署边界
 
@@ -91,6 +92,7 @@ docker compose --env-file /srv/sub2api/config/prod.env \
 - `docker volume prune`
 - `docker system prune --volumes`
 - 删除 `/srv/sub2api/postgres` 或 `/srv/sub2api/redis`
+- 修改或停止宿主机 Nginx、Certbot
 
 应用启动时会自动执行向前数据库迁移。生产更新前必须先创建 PostgreSQL 备份；应用镜像回滚不代表数据库结构会自动回滚。
 
@@ -104,4 +106,3 @@ docker exec sub2api-postgres pg_dump \
 ```
 
 备份文件应定期复制到另一台机器或对象存储，避免服务器磁盘故障时同时丢失数据库和备份。
-
