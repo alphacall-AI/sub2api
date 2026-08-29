@@ -106,6 +106,13 @@ Runner 挂载了宿主机 Docker Socket，因此其权限接近宿主机 root。
 
 ## 自动部署边界
 
+`.github/workflows/custom-prod-deploy.yml` 只响应本仓库 `custom/prod`。流程分为两台机器：
+
+- GitHub 托管 Runner：构建 `linux/amd64` 镜像，并推送 `prod` 与提交 SHA 两个标签到 GHCR。
+- `sub2api-prod` 自托管 Runner：确认 PostgreSQL、Redis 健康，创建数据库备份，然后按不可变镜像 digest 更新应用并检查 HTTPS 健康端点。
+
+生产 Runner 不处理 pull request，也不负责编译来自其他分支的代码。相同时间只允许一个生产部署运行，后来的部署会排队而不是中断正在执行的部署。
+
 生产 Action 只能对 `compose.app.yml` 执行以下类型的操作：
 
 ```bash
