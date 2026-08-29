@@ -13,7 +13,8 @@
 
 - `compose.infra.yml`：PostgreSQL、Redis 和私有 Docker 网络。长期运行，不由自动部署停止或删除。
 - `compose.app.yml`：Sub2API 应用。GitHub Actions 只能管理这一层。
-- `nginx/`：宿主机 Nginx、HTTPS 和证书续期配置。长期运行，不由应用 Action 管理。
+- `compose.edge.yml`：Docker Nginx 和 Certbot。长期运行，不由应用 Action 管理。
+- `nginx/`：Nginx HTTP/HTTPS 模板和证书申请说明。
 - `env.example`：服务器环境变量模板，不包含真实密钥。
 
 所有持久化数据默认位于 `/srv/sub2api`，不放在 Runner 工作目录：
@@ -24,8 +25,10 @@
 ├── postgres/     PostgreSQL 数据
 ├── redis/        Redis AOF/RDB 数据
 ├── backups/      数据库备份
+├── certbot/      Let's Encrypt 证书和 ACME 文件
 └── config/
-    └── prod.env  生产密钥，权限 600，不进入 Git
+    ├── prod.env  生产密钥，权限 600，不进入 Git
+    └── nginx.conf  当前生效的 Nginx 配置
 ```
 
 ## 首次部署顺序
@@ -71,7 +74,7 @@
      up -d
    ```
 
-5. 应用只监听宿主机 `127.0.0.1:8080`。按照 `nginx/README.md` 配置 Nginx 和 HTTPS，PostgreSQL 和 Redis 不映射宿主机端口。
+5. 应用同时加入 `sub2api-backend` 私有网络，并只在宿主机监听 `127.0.0.1:8080`。按照 `nginx/README.md` 启动 Docker Nginx 和 HTTPS；PostgreSQL 和 Redis 不映射宿主机端口。
 
 ## 自动部署边界
 
@@ -92,7 +95,7 @@ docker compose --env-file /srv/sub2api/config/prod.env \
 - `docker volume prune`
 - `docker system prune --volumes`
 - 删除 `/srv/sub2api/postgres` 或 `/srv/sub2api/redis`
-- 修改或停止宿主机 Nginx、Certbot
+- 修改或停止 Docker Nginx、Certbot
 
 应用启动时会自动执行向前数据库迁移。生产更新前必须先创建 PostgreSQL 备份；应用镜像回滚不代表数据库结构会自动回滚。
 
