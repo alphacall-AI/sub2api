@@ -18,8 +18,7 @@ RUN apt-get update \
         sudo \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd --create-home --uid 1000 --shell /bin/bash runner \
-    && install -d -o runner -g runner /opt/actions-runner /runner
+RUN install -d -o ubuntu -g ubuntu /opt/actions-runner /runner
 
 WORKDIR /opt/actions-runner
 
@@ -32,13 +31,12 @@ RUN test -n "${RUNNER_VERSION}" \
     && tar --extract --gzip --file runner.tar.gz \
     && rm runner.tar.gz \
     && ./bin/installdependencies.sh \
-    && chown -R runner:runner /opt/actions-runner
+    && chown -R ubuntu:ubuntu /opt/actions-runner
 
-COPY --chown=runner:runner entrypoint.sh /usr/local/bin/runner-entrypoint
+COPY --chown=ubuntu:ubuntu entrypoint.sh /usr/local/bin/runner-entrypoint
 RUN chmod 0755 /usr/local/bin/runner-entrypoint
 
-USER runner
+USER ubuntu
 WORKDIR /runner
 
 ENTRYPOINT ["/usr/local/bin/runner-entrypoint"]
-
