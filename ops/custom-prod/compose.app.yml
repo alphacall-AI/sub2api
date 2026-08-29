@@ -14,7 +14,7 @@ services:
         soft: 100000
         hard: 100000
     ports:
-      # Caddy on the host will be the only public entry point.
+      # Docker Nginx is the only public entry point.
       - "127.0.0.1:${SUB2API_PORT:-8080}:8080"
     volumes:
       - type: bind
@@ -78,4 +78,3 @@ networks:
   backend:
     name: sub2api-backend
     external: true
-

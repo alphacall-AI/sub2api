@@ -1,0 +1,33 @@
+name: sub2api-runner
+
+# Dedicated production runner. It may deploy the application layer only.
+services:
+  actions-runner:
+    image: sub2api-actions-runner:${RUNNER_VERSION:-2.337.0}
+    build:
+      context: ./runner
+      args:
+        RUNNER_VERSION: ${RUNNER_VERSION:-2.337.0}
+        RUNNER_SHA256: ${RUNNER_SHA256:-70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613}
+    container_name: sub2api-actions-runner
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      RUNNER_URL: ${RUNNER_URL:-https://github.com/alphacall-AI/sub2api}
+      RUNNER_NAME: ${RUNNER_NAME:-sub2api-prod}
+      RUNNER_LABELS: ${RUNNER_LABELS:-sub2api-prod}
+      RUNNER_WORKDIR: _work
+    group_add:
+      - ${DOCKER_GID:?DOCKER_GID is required}
+    volumes:
+      - type: bind
+        source: ${SUB2API_DATA_ROOT:-/srv/sub2api}/runner
+        target: /runner
+      - type: bind
+        source: ${SUB2API_DATA_ROOT:-/srv/sub2api}
+        target: /srv/sub2api
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock

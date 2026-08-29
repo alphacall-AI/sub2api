@@ -14,7 +14,9 @@
 - `compose.infra.yml`：PostgreSQL、Redis 和私有 Docker 网络。长期运行，不由自动部署停止或删除。
 - `compose.app.yml`：Sub2API 应用。GitHub Actions 只能管理这一层。
 - `compose.edge.yml`：Docker Nginx 和 Certbot。长期运行，不由应用 Action 管理。
+- `compose.runner.yml`：专用生产 GitHub Actions Runner，以 Docker 容器运行。
 - `nginx/`：Nginx HTTP/HTTPS 模板和证书申请说明。
+- `runner/`：Runner 镜像、首次注册和日常启动脚本。
 - `env.example`：服务器环境变量模板，不包含真实密钥。
 
 所有持久化数据默认位于 `/srv/sub2api`，不放在 Runner 工作目录：
@@ -26,6 +28,7 @@
 ├── redis/        Redis AOF/RDB 数据
 ├── backups/      数据库备份
 ├── certbot/      Let's Encrypt 证书和 ACME 文件
+├── runner/       Runner 注册状态和工作目录
 └── config/
     ├── prod.env  生产密钥，权限 600，不进入 Git
     └── nginx.conf  当前生效的 Nginx 配置
@@ -75,6 +78,31 @@
    ```
 
 5. 应用同时加入 `sub2api-backend` 私有网络，并只在宿主机监听 `127.0.0.1:8080`。按照 `nginx/README.md` 启动 Docker Nginx 和 HTTPS；PostgreSQL 和 Redis 不映射宿主机端口。
+
+## Docker Runner 首次注册
+
+Runner 使用 GitHub 官方发布的 Linux x64 压缩包构建，构建时强制校验 SHA-256。宿主机不安装 Runner、Git、Node 或 Compose；仅保留 Docker 与 `/srv/sub2api/runner` 持久化状态。
+
+1. 在 GitHub 仓库进入 **Settings → Actions → Runners → New self-hosted runner**，选择 Linux x64，页面保持打开。
+2. 在服务器构建镜像：
+
+   ```bash
+   cd /opt/sub2api/repo
+   bash ops/custom-prod/runner/start.sh
+   ```
+
+   尚未注册时该脚本只构建镜像，不会启动反复退出的容器。
+
+3. 执行安全注册脚本，并在隐藏提示中只粘贴 GitHub 页面 `--token` 后面的值：
+
+   ```bash
+   cd /opt/sub2api/repo
+   bash ops/custom-prod/runner/register.sh
+   ```
+
+Token 只进入一次性的注册容器环境，注册完成后容器立即删除；它不会写入 Git、`prod.env` 或 Runner 配置。之后 Runner 使用 `/srv/sub2api/runner` 中的长期凭据连接 GitHub。
+
+Runner 挂载了宿主机 Docker Socket，因此其权限接近宿主机 root。生产工作流只能由受保护的 `custom/prod` push 触发，不得让 fork PR 或任意分支在该 Runner 上执行。
 
 ## 自动部署边界
 
