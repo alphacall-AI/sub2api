@@ -30,8 +30,9 @@ sub2api-prod:8080
    ```bash
    sudo install -d -m 0750 \
      /srv/sub2api/config \
-     /srv/sub2api/certbot/www \
      /srv/sub2api/certbot/letsencrypt
+   # Nginx worker must be able to read ACME challenge files.
+   sudo install -d -m 0755 /srv/sub2api/certbot/www
    sudo chown -R "$USER":"$USER" /srv/sub2api
    ```
 
